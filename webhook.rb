@@ -72,6 +72,21 @@ post '/webhook' do
       error 500
     end
 
+    # don't send SMS for closed topics
+    # avoids dual notifications because Discourse sends a webhook
+    # for topic creation AND closure events
+    if topic['closed'] == true
+      log.debug("Topic #{topic['id']} is closed - no SMS sent on closure events\n".green)
+      return
+    end
+
+    # don't send SMS on topic deletion events
+    if topic['deleted_at']
+      log.debug("Topic #{topic['id']} is being deleted - no SMS sent on deletion events\n".green)
+      return
+    end
+
+
     # collect information for the SMS
     topic_title = topic['title']
     log.debug("topic title: #{topic_title}".green)
@@ -83,7 +98,10 @@ post '/webhook' do
     log.debug("first post url: #{topic_url}\n".green)
 
     # close the topic immediately (discourse API)
-    # status = "closed"
+    discourse.change_topic_status(
+      topic['slug'],
+      topic['id'],
+      {:status => 'closed', :enabled => 'true'})
 
   else
     log.error("webhook URL did not match ENV-configured expected URL\n".red)
