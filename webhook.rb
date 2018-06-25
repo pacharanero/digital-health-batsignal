@@ -6,6 +6,10 @@ require 'json'
 require 'logger'
 require 'colorize'
 
+# emails
+require 'sendgrid-ruby'
+include SendGrid
+
 # discourse
 require 'discourse_api'
 
@@ -23,9 +27,11 @@ require 'sanitize'
 require 'pry'
 
 log = Logger.new(STDOUT)
+admin_email_content=""
 drive = GoogleDrive::Session.from_service_account_key(
   StringIO.new( ENV['GOOGLE_SERVICE_SECRET'] )
 )
+mailer = SendGrid::API.new(api_key: ENV['SENDGRID_API_KEY'])
 
 get '/' do
   "webhook responder"
@@ -120,14 +126,22 @@ post '/webhook' do
 
   # send SMS messages
   client = setup_sms(log)
-  send_sms(client, numbers_list, sms_text, log)
+  invalid_numbers = send_sms(client, numbers_list, sms_text, log, admin_email_content)
 
   # send to mattermost for Pharmoutcomes
   # mattermost_sender(sms_text, log)
 
   # report errors to admin
+
   # report invalid numbers to admin
   # report completion to admin
+  admin_email_content += "Successful Batsignal Sent\n"
+  admin_email_content += "#{numbers_list.length} numbers messaged\n"
+  admin_email_content += "#{invalid_numbers.length} invalid numbers\n"
+  if invalid_numbers.length > 0
+    admin_email_content += "ACTION: remove invalid numbers #{invalid_numbers}"
+  end
+  email_admins(mailer, admin_email_content, log)
 
 end
 
@@ -158,22 +172,37 @@ def setup_sms(log)
     ENV['TWILIO_ACCOUNT_SID'],
     ENV['TWILIO_AUTH_TOKEN']
   )
-  log.debug("twilio client created #{client}")
+  log.debug("twilio client created #{client}".green)
   return client
 end
 
-def send_sms(client, numbers_list, sms_text, log)
+def send_sms(client, numbers_list, sms_text, log, admin_email_content)
+  invalid_numbers = []
   numbers_list.each do |number|
-    if number # need to add test for validity
-      # reject invalid UK mobile numbers (ie non +447)
+    if number.slice(0,3) == "447"
       msg = client.messages.create(
         from: ENV['TWILIO_NUMBER'],
         to: number,
         body: sms_text
       )
-      log.debug("twilio message sent: #{msg}")
+      log.debug("twilio message sent: #{msg}".green)
     else
-      log.error("invalid UK mobile number #{number}")
+      invalid_numbers << number
+      log.error("invalid UK mobile number #{number}".red)
     end
   end
+  return invalid_numbers
+end
+
+def email_admins(mailer, admin_email_content, log)
+  # collect content
+  from = Email.new(email: 'batsignal@digitalhealth.net')
+  to = Email.new(email: ENV['ADMIN_USER_CONTACT'])
+  subject = 'Batsignal Admin Report'
+  content = Content.new(type: 'text/plain', value: admin_email_content)
+  # create mail
+  mail = Mail.new(from, subject, to, content)
+  # send mail
+  response = mailer.client.mail._('send').post(request_body: mail.to_json)
+  log.debug("mailer response #{response}".green)
 end

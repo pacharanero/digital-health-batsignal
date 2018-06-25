@@ -14,8 +14,8 @@ gem 'sanitize'
 # twilio
 gem 'twilio-ruby'
 
-# mailgun (logging and error emails)
-gem 'mailgun-ruby'
+# email (logging and error emails)
+gem 'sendgrid-ruby'
 
 # google API
 gem 'google_drive'
