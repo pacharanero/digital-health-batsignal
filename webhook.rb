@@ -13,36 +13,25 @@ require 'discourse_api'
 require 'twilio-ruby'
 
 # gdocs
-# require 'google/apis/drive_v2'
-# require 'google/api_client/client_secrets'
-# require 'oauth2'
+require 'google_drive'
 
 # security
 require 'dotenv/load'
 require 'sanitize'
 
+# debugging
+require 'pry'
+
 log = Logger.new(STDOUT)
+drive = GoogleDrive::Session.from_service_account_key(
+  StringIO.new( ENV['GOOGLE_SERVICE_SECRET'] )
+)
 
 get '/' do
   "webhook responder"
 end
 
-# def client
-#   client ||= OAuth2::Client.new(GOOGLE_API_CLIENT_ID, GOOGLE_API_SECRET, {
-#                 :site => 'https://accounts.google.com',
-#                 :authorize_url => "/o/oauth2/auth",
-#                 :token_url => "/o/oauth2/token"
-#               })
-# end
 
-# # endpoint for authorizing Google Docs API
-# get "/auth" do
-#   redirect client.auth_code.authorize_url(:redirect_uri => redirect_uri,:scope => SCOPES,:access_type => "offline")
-# end
-#
-# get "/auth_success" do
-#   "successfully authenticated to Google API"
-# end
 
 # catch the webhook from a new topic
 post '/webhook' do
@@ -53,9 +42,10 @@ post '/webhook' do
   log.debug("webhook standard headers: #{headers}\n".green) if headers
 
   # check_secret_token
-  secret = ENV['WEBHOOK_SECRET']
+  # secret = ENV['WEBHOOK_SECRET']
+  # https://developer.github.com/webhooks/securing/
 
-  # check that the source matches what we are expecting
+  # check that the webhook origin matches the domain we are expecting
   if ENV["DISCOURSE_URL"] == request.env["HTTP_X_DISCOURSE_INSTANCE"]
     discourse = DiscourseApi::Client.new(ENV['DISCOURSE_URL'])
     discourse.api_key = ENV["DISCOURSE_API_KEY"]
@@ -72,6 +62,12 @@ post '/webhook' do
       error 500
     end
 
+    # don't send SMS on topic deletion events
+    if topic['deleted_at']
+      log.debug("Topic #{topic['id']} is being deleted - no SMS sent on deletion events\n".green)
+      return
+    end
+
     # don't send SMS for closed topics
     # avoids dual notifications because Discourse sends a webhook
     # for topic creation AND closure events
@@ -79,13 +75,6 @@ post '/webhook' do
       log.debug("Topic #{topic['id']} is closed - no SMS sent on closure events\n".green)
       return
     end
-
-    # don't send SMS on topic deletion events
-    if topic['deleted_at']
-      log.debug("Topic #{topic['id']} is being deleted - no SMS sent on deletion events\n".green)
-      return
-    end
-
 
     # collect information for the SMS
     topic_title = topic['title']
@@ -96,6 +85,8 @@ post '/webhook' do
     log.debug("first post sanitized text: #{first_post_sanitized}".green)
     topic_url = ENV["DISCOURSE_URL"] + "/t/" + topic_id.to_s
     log.debug("first post url: #{topic_url}\n".green)
+
+    # TODO: truncate the SHORT ALERT body text
 
     # close the topic immediately (discourse API)
     discourse.change_topic_status(
@@ -118,16 +109,60 @@ post '/webhook' do
   log.debug("formatted SMS text block: \n #{sms_text}")
   log.debug("(formatted SMS text character count: #{sms_text.length})\n")
 
-  # get list of SMS numbers
-  numbers_list = ['+447747600617', '+447790497135']
+  # get list of SMS numbers securely from Google Sheet where they are managed
+  begin
+    spreadsheet = drive.spreadsheet_by_title('Batsignal Numbers List')
+    numbers_list = spreadsheet.worksheet_by_title('TEST-LOOKUP')[2,2].split(",")
+  rescue
+    log.error("spreadsheet or worksheet was not found by id".red)
+    error 500
+  end
 
   # send SMS messages
+  client = setup_sms(log)
+  send_sms(client, numbers_list, sms_text, log)
+
+  # send to mattermost for Pharmoutcomes
+  # mattermost_sender(sms_text, log)
+
+  # report errors to admin
+  # report invalid numbers to admin
+  # report completion to admin
+
+end
+
+# schedule weekly tests automatically
+# end-to-end integration test
+
+def mattermost_sender(text,  log)
+  require 'uri'
+  require 'net/http'
+  url = URI("https://chat.pharmoutcomes.org/hooks/wrxu4jimoinnpmir6k8m4y14hc")
+  http = Net::HTTP.new(url.host, url.port)
+  http.use_ssl = true
+  http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+  request = Net::HTTP::Post.new(url)
+  request["content-type"] = 'application/json'
+  request.body = "{
+    \"text\": \"#{text}\"
+    \"channel\": \"news-security\",
+    \"username\": \"dhi-batsignal\",
+    \"icon_url\": \"\",
+  }"
+  response = http.request(request)
+  puts response
+end
+
+def setup_sms(log)
   client = Twilio::REST::Client.new(
     ENV['TWILIO_ACCOUNT_SID'],
     ENV['TWILIO_AUTH_TOKEN']
   )
   log.debug("twilio client created #{client}")
+  return client
+end
 
+def send_sms(client, numbers_list, sms_text, log)
   numbers_list.each do |number|
     if number # need to add test for validity
       # reject invalid UK mobile numbers (ie non +447)
@@ -141,12 +176,4 @@ post '/webhook' do
       log.error("invalid UK mobile number #{number}")
     end
   end
-
-  # report errors to admin
-  # report invalid numbers to admin
-  # report completion to admin
-
 end
-
-# schedule weekly tests automatically
-# end-to-end integration test

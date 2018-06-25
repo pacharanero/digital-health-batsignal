@@ -14,6 +14,11 @@ gem 'sanitize'
 # twilio
 gem 'twilio-ruby'
 
-# # google API
-# gem 'google-api-client'
-# gem 'oauth2'
+# mailgun (logging and error emails)
+gem 'mailgun-ruby'
+
+# google API
+gem 'google_drive'
+
+# debugging
+gem 'pry'
