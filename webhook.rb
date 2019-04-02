@@ -33,11 +33,10 @@ drive = GoogleDrive::Session.from_service_account_key(
 )
 mailer = SendGrid::API.new(api_key: ENV['SENDGRID_API_KEY'])
 
+# for testing only
 get '/' do
   "webhook responder"
 end
-
-
 
 # catch the webhook from a new topic
 post '/webhook' do
@@ -118,7 +117,7 @@ post '/webhook' do
   # get list of SMS numbers securely from Google Sheet where they are managed
   begin
     spreadsheet = drive.spreadsheet_by_title('Batsignal Numbers List')
-    numbers_list = spreadsheet.worksheet_by_title('LIVE-LOOKUP')[2,2].split(",")
+    numbers_list = spreadsheet.worksheet_by_title('TEST-LOOKUP')[2,2].split(",")
   rescue
     log.error("spreadsheet or worksheet was not found by id".red)
     error 500
@@ -145,8 +144,7 @@ post '/webhook' do
 
 end
 
-# schedule weekly tests automatically
-# end-to-end integration test
+# TODO: end-to-end integration test
 
 def mattermost_sender(text,  log)
   require 'uri'
