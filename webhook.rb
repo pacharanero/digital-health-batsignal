@@ -117,7 +117,7 @@ post '/webhook' do
   # get list of SMS numbers securely from Google Sheet where they are managed
   begin
     spreadsheet = drive.spreadsheet_by_title('Batsignal Numbers List')
-    numbers_list = spreadsheet.worksheet_by_title('TEST-LOOKUP')[2,2].split(",")
+    numbers_list = spreadsheet.worksheet_by_title('LIVE-LOOKUP')[2,2].split(",")
   rescue
     log.error("spreadsheet or worksheet was not found by id".red)
     error 500
