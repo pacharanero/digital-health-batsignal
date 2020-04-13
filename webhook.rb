@@ -10,23 +10,29 @@ require 'colorize'
 require 'sendgrid-ruby'
 include SendGrid
 
-# discourse
 require 'discourse_api'
-
-# twilio
 require 'twilio-ruby'
 
 # gdocs
 require 'google_drive'
 
 # security
-require 'dotenv/load'
+require 'dotenv'
 require 'sanitize'
 
 # debugging
 require 'pry'
 
+# setup
 log = Logger.new(STDOUT)
+
+test = true
+if test
+  Dotenv.load('config/test.env')
+else
+  Dotenv.load('config/live.env')
+end
+
 admin_email_content=""
 drive = GoogleDrive::Session.from_service_account_key(
   StringIO.new( ENV['GOOGLE_SERVICE_SECRET'] )
@@ -35,12 +41,14 @@ mailer = SendGrid::API.new(api_key: ENV['SENDGRID_API_KEY'])
 
 # for testing only
 get '/' do
-  "webhook responder"
+  "Discourse Batsignal"
 end
 
 # catch the webhook from a new topic
-post '/webhook' do
+post '/batsignal' do
+  # parse the JSON request body
   body = JSON.parse(request.body.read)
+
   # log webhook payload
   log.debug("webhook body: #{body}\n".green) if request.body
   log.debug("webhook custom headers: #{request.env}\n".green) if request.env
@@ -52,6 +60,8 @@ post '/webhook' do
 
   # check that the webhook origin matches the domain we are expecting
   if ENV["DISCOURSE_URL"] == request.env["HTTP_X_DISCOURSE_INSTANCE"]
+
+    # set up Discourse API
     discourse = DiscourseApi::Client.new(ENV['DISCOURSE_URL'])
     discourse.api_key = ENV["DISCOURSE_API_KEY"]
     discourse.api_username = ENV["DISCOURSE_USERNAME"]
@@ -93,11 +103,11 @@ post '/webhook' do
 
     # TODO: truncate the SHORT ALERT body text
 
-    # close the topic immediately (discourse API)
+    # close the topic immediately (Discourse API)
     discourse.change_topic_status(
       topic['slug'],
       topic['id'],
-      {:status => 'closed', :enabled => 'true'})
+      {:status => 'closed', :enabled => 'true', :api_username => ENV['DISCOURSE_USERNAME'] })
 
   else
     log.error("webhook URL did not match ENV-configured expected URL\n".red)
@@ -117,7 +127,7 @@ post '/webhook' do
   # get list of SMS numbers securely from Google Sheet where they are managed
   begin
     spreadsheet = drive.spreadsheet_by_title('Batsignal Numbers List')
-    numbers_list = spreadsheet.worksheet_by_title('LIVE-LOOKUP')[2,2].split(",")
+    numbers_list = spreadsheet.worksheet_by_title(ENV['SHEET_TAB_NAME'])[2,2].split(",")
   rescue
     log.error("spreadsheet or worksheet was not found by id".red)
     error 500
