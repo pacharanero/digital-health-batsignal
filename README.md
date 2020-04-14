@@ -29,3 +29,32 @@ Discourse Webhook responder in Sinatra
 * It builds an SMS payload and sends it to each recipient via Twilio
 * It also sends an admin email to indicate success, and reports any invalid numbers
 #### 5) Batsignal Weekly Testing
+
+
+### Steps to testing a new version into Live
+
+#### 1. Testing locally using the test-webhook-locally.rb file
+* Running the file with `ruby test-webhook-locally.rb` sends a dummy topic payload to localhost:4567 to be picked up by Sinatra.
+* Some parts will not work, such as Sinatra's use of the Discourse API to auto-close the topic
+* But it can help debugging and testing rapidly or without internet access
+* the `test` variable is set
+
+#### 2. Testing locally using the Test webhook to an Ngrok URL
+* Ngrok Webhook config: https://discourse.digitalhealth.net/admin/api/web_hooks/4
+* Posts in the `batsignal-dev-test` category trigger test webhooks sent to the Ngrok URL, which are sent to your locally running code
+* Discourse API events will still work and will take effect on the `batsignal-dev-test` category
+* SMS events will still work.
+
+#### 3. Testing code pushed to Heroku using a different webhook
+* Switch off the Ngrok webhook first, and enable the Heroku webhook.
+* Heroku Webhook config: https://discourse.digitalhealth.net/admin/api/web_hooks/9
+* Posts in the `batsignal-dev-test` category trigger test webhooks sent to the live service
+* IMPORTANT!!!! - push any updates to the ENV using `heroku config:push` BUT manually edit the environment variables in Heroku so that it uses the TEST-LOOKUP tab in the source spreadsheet (otherwise you will send test SMSs to 500+ people)
+* Discourse API events will still work and will take effect on the `batsignal-dev-test` category
+* SMS events will still work.
+
+#### 4. Live
+* Switch the Live webhook back on https://discourse.digitalhealth.net/admin/api/web_hooks/7
+* Switch off all other webhooks
+* Edit the Heroku ENV vars so that `SHEET_TAB_NAME='LIVE-LOOKUP'` and `DEPLOY_STATUS=live`
+* Test with a post in `batsignal` (BATSIGNAL - EMERGENCY SMS ALERTING) which will be notified to the entire Batsignal database of users.

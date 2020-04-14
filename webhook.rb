@@ -26,8 +26,7 @@ require 'pry'
 # setup
 log = Logger.new(STDOUT)
 
-test = true
-if test
+if ENV['DEPLOY_STATUS'] == 'test'
   Dotenv.load('config/test.env')
 else
   Dotenv.load('config/live.env')
@@ -87,7 +86,7 @@ post '/batsignal' do
     # avoids dual notifications because Discourse sends a webhook
     # for topic creation AND closure events
     if topic['closed'] == true
-      log.debug("Topic #{topic['id']} is closed - no SMS sent on closure events\n".green)
+      log.debug("Topic #{topic['id']} has been closed - no SMS is sent on the actual closure event\n".green)
       return
     end
 
