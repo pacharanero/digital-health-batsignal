@@ -28,8 +28,10 @@ log = Logger.new(STDOUT)
 
 if ENV['DEPLOY_STATUS'] == 'test'
   Dotenv.load('config/test.env')
+  log.debug("Loaded TEST environment")
 else
   Dotenv.load('config/live.env')
+  log.debug("Loaded LIVE environment")
 end
 
 admin_email_content=""
@@ -154,25 +156,6 @@ post '/batsignal' do
 end
 
 # TODO: end-to-end integration test
-
-def mattermost_sender(text,  log)
-  require 'uri'
-  require 'net/http'
-  url = URI("https://chat.pharmoutcomes.org/hooks/wrxu4jimoinnpmir6k8m4y14hc")
-  http = Net::HTTP.new(url.host, url.port)
-  http.use_ssl = true
-  http.verify_mode = OpenSSL::SSL::VERIFY_NONE
-  request = Net::HTTP::Post.new(url)
-  request["content-type"] = 'application/json'
-  request.body = "{
-    \"text\": \"#{text}\"
-    \"channel\": \"news-security\",
-    \"username\": \"dhi-batsignal\",
-    \"icon_url\": \"\",
-  }"
-  response = http.request(request)
-  puts response
-end
 
 def setup_sms(log)
   client = Twilio::REST::Client.new(
