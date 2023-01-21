@@ -138,9 +138,6 @@ post '/batsignal' do
   client = setup_sms(log)
   invalid_numbers = send_sms(client, numbers_list, sms_text, log, admin_email_content)
 
-  # send to mattermost for Pharmoutcomes
-  # mattermost_sender(sms_text, log)
-
   # report errors to admin
 
   # report invalid numbers to admin
@@ -175,10 +172,10 @@ def send_sms(client, numbers_list, sms_text, log, admin_email_content)
         to: number,
         body: sms_text
       )
-      log.debug("twilio message sent: #{msg}".green)
+      log.debug("Twilio message sent to #{to.slice(-6,6}. Excerpt: #{sms_text.split(//).last(50).join}".green)
     else
       invalid_numbers << number
-      log.error("invalid UK mobile number #{number}".red)
+      log.error("Invalid UK mobile number #{number}".red)
     end
   end
   return invalid_numbers
