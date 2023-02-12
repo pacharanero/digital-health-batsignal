@@ -1,14 +1,14 @@
 require 'sinatra'
 require 'httparty'
 require 'json'
+require 'stringio'
 
 # logging
 require 'logger'
 require 'colorize'
 
 # emails
-require 'sendgrid-ruby'
-include SendGrid
+require 'mailgun-ruby'
 
 require 'discourse_api'
 require 'twilio-ruby'
@@ -26,23 +26,29 @@ require 'pry'
 # setup
 log = Logger.new(STDOUT)
 
-if ENV['DEPLOY_STATUS'] == 'test'
-  Dotenv.load('config/test.env')
-  log.debug("Loaded TEST environment")
-else
+if ENV['DEPLOY_STATUS'] == 'live'
   Dotenv.load('config/live.env')
   log.debug("Loaded LIVE environment")
+else
+  Dotenv.load('config/test.env')
+  log.debug("Loaded TEST environment")
 end
 
 admin_email_content=""
+
 drive = GoogleDrive::Session.from_service_account_key(
   StringIO.new( ENV['GOOGLE_SERVICE_SECRET'] )
 )
-mailer = SendGrid::API.new(api_key: ENV['SENDGRID_API_KEY'])
+
+mailer = Mailgun::Client.new ENV['MAILGUN_API_KEY'], ENV['MAILGUN_API_ENDPOINT']
 
 # for testing only
 get '/' do
-  "Discourse Batsignal"
+  "Discourse Batsignal GET"
+end
+
+post '/' do
+  "Discourse Batsignal GET"
 end
 
 # catch the webhook from a new topic
@@ -111,7 +117,7 @@ post '/batsignal' do
       {:status => 'closed', :enabled => 'true', :api_username => ENV['DISCOURSE_USERNAME'] })
 
   else
-    log.error("webhook URL did not match ENV-configured expected URL\n".red)
+    log.error("webhook URL #{ENV["DISCOURSE_URL"]} did not match ENV-configured expected URL #{request.env["HTTP_X_DISCOURSE_INSTANCE"]}\n".red)
     error 401
   end
 
@@ -172,7 +178,7 @@ def send_sms(client, numbers_list, sms_text, log, admin_email_content)
         to: number,
         body: sms_text
       )
-      log.debug("Twilio message sent to #{to.slice(-6,6}. Excerpt: #{sms_text.split(//).last(50).join}".green)
+      log.debug("Twilio message sent to #{number.slice(-6,6)} Excerpt: #{sms_text.split(//).last(50).join}".green)
     else
       invalid_numbers << number
       log.error("Invalid UK mobile number #{number}".red)
@@ -183,13 +189,11 @@ end
 
 def email_admins(mailer, admin_email_content, log)
   # collect content
-  from = Email.new(email: 'batsignal@digitalhealth.net')
-  to = Email.new(email: ENV['ADMIN_USER_CONTACT'])
-  subject = 'Batsignal Admin Report'
-  content = Content.new(type: 'text/plain', value: admin_email_content)
-  # create mail
-  mail = Mail.new(from, subject, to, content)
+  message_params =  { from: 'batsignal@digitalhealth.net',
+                      to: ENV['ADMIN_USER_CONTACT'],
+                      subject: 'Batsignal Admin Report',
+                      text: admin_email_content }
   # send mail
-  response = mailer.client.mail._('send').post(request_body: mail.to_json)
-  log.debug("mailer response #{response}".green)
+  response = mailer.send_message 'mg.discourse.digitalhealth.net', message_params
+  log.debug("mailer response #{response.inspect}".green)
 end
