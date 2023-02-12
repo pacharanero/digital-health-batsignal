@@ -3,47 +3,54 @@ require 'json'
 
 # sends a dummy webhook to the Batsignal application
 
-headers_hash = { :"Content-Type" => "application/json" }
+headers_hash = { :"Content-Type" => "application/json",
+                 :"X_DISCOURSE_INSTANCE" => "https://discourse.digitalhealth.net"
+               }
 
 body_hash = {
-  :post => {
-    :id => 22644,
-    :name => "Marcus Baw",
-    :username => "pacharanero",
-    :avatar_template => "/user_avatar/discourse.digitalhealth.net/pacharanero/{size}/2066_1.png",
-    :created_at => "2018-06-04T08:11:40.805Z",
-    :cooked => "<p>This topic was automatically closed after 15 minutes. New replies are no longer allowed.</p>",
-    :post_number => 2,
-    :post_type => 3,
-    :updated_at => "2018-06-04T08:11:40.805Z",
-    :reply_count => 0,
-    :reply_to_post_number => 'null',
-    :quote_count => 0,
-    :avg_time => 'null',
-    :incoming_link_count => 0,
-    :reads => 0,
-    :score => 0,
-    :topic_id => 6047,
-    :topic_slug => "monday-morning-batsignal-test-04-06-2018",
-    :topic_title => "Monday Morning Batsignal Test 04.06.2018",
-    :display_username => "Marcus Baw",
-    :primary_group_name => "CCIO_LN_AdvisoryBrd",
-    :version => 1,
-    :user_title => "Discourse Wrangler & CCIO Network - Advisory Board Member",
-    :moderator => true,
-    :admin => true,
-    :staff => true,
-    :user_id => 1,
-    :hidden => false,
-    :trust_level => 4,
-    :deleted_at => 'null',
-    :user_deleted => false,
-    :edit_reason => 'null',
-    :wiki => false,
-    :action_code => "autoclosed.enabled",
-    :topic_posts_count => 2
-  }
-}
+"topic"=>                                                       
+  {"tags"=>[],                                                   
+   "tags_descriptions"=>{},                                      
+   "id"=>28281,                                                  
+   "title"=>"Monday Morning Batsignal Test 2023.02.06",          
+   "fancy_title"=>"Monday Morning Batsignal Test 2023.02.06",    
+   "posts_count"=>2,                                             
+   "created_at"=>"2023-02-06T09:00:24.096Z",                     
+   "views"=>1,                                                   
+   "reply_count"=>0,                                             
+   "like_count"=>0,                                              
+   "last_posted_at"=>"2023-02-06T09:00:25.483Z",                 
+   "visible"=>true,                                   
+   "closed"=>true,                                    
+   "archived"=>false,
+   "archetype"=>"regular",
+   "slug"=>"monday-morning-batsignal-test-2023-02-06",
+   "category_id"=>56,
+   "word_count"=>5,
+   "deleted_at"=>nil,
+   "user_id"=>1,
+   "featured_link"=>nil,
+   "pinned_globally"=>false,
+   "pinned_at"=>nil,
+   "pinned_until"=>nil,
+   "unpinned"=>nil,
+   "pinned"=>false,
+   "highest_post_number"=>2,
+   "deleted_by"=>nil,
+   "has_deleted"=>false,
+   "bookmarked"=>false,
+   "participant_count"=>1,
+   "thumbnails"=>nil,
+   "created_by"=>
+    {"id"=>1,
+     "username"=>"pacharanero",
+     "name"=>"Marcus Baw",
+     "avatar_template"=>"/user_avatar/discourse.digitalhealth.net/pacharanero/{size}/2066_2.png"},
+   "last_poster"=>
+    {"id"=>1,
+     "username"=>"pacharanero",
+     "name"=>"Marcus Baw",
+     "avatar_template"=>"/user_avatar/discourse.digitalhealth.net/pacharanero/{size}/2066_2.png"}}}
 
 puts headers_hash.to_json
 puts body_hash.to_json
@@ -51,5 +58,4 @@ puts body_hash.to_json
 resp = HTTParty.post(
   'http://localhost:4567/batsignal',
   headers: headers_hash,
-  body: body_hash)
-# puts resp
+  body: body_hash.to_json)
