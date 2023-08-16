@@ -48,7 +48,7 @@ get '/' do
 end
 
 post '/' do
-  "Discourse Batsignal GET"
+  "Discourse Batsignal POST"
 end
 
 # catch the webhook from a new topic
