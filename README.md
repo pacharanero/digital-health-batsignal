@@ -35,10 +35,11 @@ rbenv global 3.2.2
   `ruby batsignal.rb` # Sinatra runs on port 4567 by default
   `ngrok -http 4567` # expose this port via ngrok
 
-### Running on Heroku for production
+### Running on VPS for production
 
-- use `heroku config:push` to sync local configs up to heroku instance
-- use `heroku logs -t` to tail the heroku remote logs in local terminal
+```bash
+git clone https://github.com/pacharanero/digital-health-batsignal.git /var/batsignal
+```
 
 ### How does the Batsignal work?
 
