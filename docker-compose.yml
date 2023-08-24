@@ -4,5 +4,6 @@ services:
   # batsignal container - runs the webhook responder
   batsignal:
     build: .
+    restart: always
     ports:
       - 4567:4567
