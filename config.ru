@@ -1,2 +1,2 @@
-require './webhook'
+require './batsignal'
 run Sinatra::Application

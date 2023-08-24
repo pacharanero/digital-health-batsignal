@@ -1,11 +1,38 @@
-# discourse-webhook-sinatra
+# discourse-batsignal
 
-Discourse Webhook responder in Sinatra
+Discourse Batsignal (webhook) SMS responder
+
+### Installation in a new environment using `rbenv`
+
+Install ruby using rbenv
+```bash
+curl -fsSL <https://github.com/rbenv/rbenv-installer/raw/HEAD/bin/rbenv-installer> | bash
+```
+
+Add rbenv to your path
+```bash
+echo 'eval "$(/home/batsignal/.rbenv/bin/rbenv init - bash)"' >> ~/.bashrc
+```
+
+Install build dependencies
+```bash
+apt-get install autoconf patch build-essential rustc libssl-dev libyaml-dev libreadline6-dev zlib1g-dev libgmp-dev libncurses5-dev libffi-dev libgdbm6 libgdbm-dev libdb-dev uuid-dev
+```
+
+Install a Ruby version (currently 3.2.2)
+```bash
+rbenv install 3.2.2
+```
+
+Set this Ruby to the be the default
+```bash
+rbenv global 3.2.2
+```
 
 ### Running locally
 
 - use [ngrok](https://ngrok.com/) to securely tunnel your local server out to the web in order to receive webhooks
-  `ruby webhook.rb` # Sinatra runs on port 4567 by default
+  `ruby batsignal.rb` # Sinatra runs on port 4567 by default
   `ngrok -http 4567` # expose this port via ngrok
 
 ### Running on Heroku for production
