@@ -5,7 +5,6 @@ require 'date'
 require 'dotenv'
 require 'logger'
 Dotenv.load('config/test.env')
-puts ENV['DISCOURSE_URL']
 
 @logger = Logger.new(STDOUT)
 
