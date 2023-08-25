@@ -5,13 +5,14 @@ require 'date'
 require 'dotenv'
 require 'logger'
 Dotenv.load('config/test.env')
+puts ENV['DISCOURSE_URL']
 
 @logger = Logger.new(STDOUT)
 
 def send_batsignal
   # set up client
   client = DiscourseApi::Client.new(ENV['DISCOURSE_URL'])
-  client.api_key, client.api_username = ENV['DISCOURSE_API_KEY'], ENV['DISCOURSE_API_USER']
+  client.api_key, client.api_username = ENV['DISCOURSE_API_KEY'], ENV['DISCOURSE_USERNAME']
 
   # create new topic on Discourse
   begin
