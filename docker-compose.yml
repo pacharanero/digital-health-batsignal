@@ -7,3 +7,5 @@ services:
     restart: always
     ports:
       - 4567:4567
+    environment:
+      - DEPLOY_STATUS=live

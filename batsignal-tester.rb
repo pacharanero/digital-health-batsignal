@@ -4,9 +4,18 @@ require 'discourse_api'
 require 'date'
 require 'dotenv'
 require 'logger'
-Dotenv.load('config/test.env')
 
+# setup logger
 @logger = Logger.new(STDOUT)
+
+#load env vars based on deploy status
+if ENV['DEPLOY_STATUS'] == 'live'
+  Dotenv.load('config/live.env')
+  log.debug("Loaded LIVE environment")
+else
+  Dotenv.load('config/test.env')
+  log.debug("Loaded TEST environment")
+end
 
 def send_batsignal
   # set up client
